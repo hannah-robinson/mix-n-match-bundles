@@ -1,10 +1,29 @@
 query RunInput {
+  # cartTransform {
+  #   metafield: metafield(key: "freeProduct", namespace: "bundler") {
+  #     type
+  #     value
+  #   }
+  # }
   cart {
     lines {
       id
       quantity
       bundleId: attribute(key: "_bundleId") {
         value
+      }
+      cost {
+        totalAmount {
+          amount
+        }
+      }
+      merchandise {
+        ... on ProductVariant {
+          id
+          product {
+            title
+          }
+        }
       }
     }
   }

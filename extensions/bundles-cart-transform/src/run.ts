@@ -2,7 +2,9 @@ import type {
   RunInput,
   FunctionRunResult,
   CartLine,
-  CartOperation
+  CartOperation,
+  Product,
+  ProductVariant
 } from "../generated/api";
 
 export function run(input: RunInput): FunctionRunResult {
@@ -17,6 +19,8 @@ export function run(input: RunInput): FunctionRunResult {
       groupedItems[bundleId.value].push(line);
     }
   })
+
+  const itemsWithNoBundleId = input.cart.lines.filter( line => !!line.bundleId?.value === false)
   return {
     operations: [
       ...Object.values(groupedItems).map(group => {
@@ -31,7 +35,56 @@ export function run(input: RunInput): FunctionRunResult {
           }
         }
         return mergeOperation
+      }),
+      ...itemsWithNoBundleId.map(item => {
+        const expandOperation: CartOperation = {
+          expand: {
+            cartLineId: item.id,
+            expandedCartItems: [
+              {
+                merchandiseId: (item.merchandise as ProductVariant).id,
+                quantity: item.quantity,
+                price: {
+                  adjustment: {
+                    fixedPricePerUnit: {
+                      amount: item.cost.totalAmount.amount
+                    }
+                  }
+                }
+              },
+              {
+                merchandiseId: "gid://shopify/ProductVariant/46557034053934",
+                quantity: item.quantity,
+                price: {
+                  adjustment: {
+                    fixedPricePerUnit: {
+                      amount: 1
+                    }
+                  }
+                }
+              }
+            ],
+            title: `${(item.merchandise as ProductVariant).product.title} + Free Sticker`
+          }
+        }
+        return expandOperation;
       })
+      // {
+      //   update: {
+      //     cartLineId: input.cart.lines[0].id,
+      //     title: `${(input.cart.lines[0].merchandise as ProductVariant).product.title} – Updated`,
+      //     "image": {
+      //       "url": "https://cdn.shopify.com/[...]/custom-image.png"
+      //     },
+      //     "price": {
+      //       "adjustment": {
+      //         "fixedPricePerUnit": {
+      //           "amount": "100"
+      //         }
+      //       }
+      //     }
+      //   } 
+      // }
     ]
   };
-};
+};  
